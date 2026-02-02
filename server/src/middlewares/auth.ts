@@ -1,10 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken } from '../modules/auth/jwt';
 
-export interface AuthenticatedRequest extends Request {
-  userId: number;
-  role: 'USER' | 'ADMIN';
-}
+
 
 export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
   const header = req.headers.authorization;
@@ -20,8 +17,8 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
       role: 'USER' | 'ADMIN';
     };
 
-    (req as AuthenticatedRequest).userId = payload.userId;
-    (req as AuthenticatedRequest).role = payload.role;
+    req.userId = payload.userId;
+    req.role = payload.role;
 
     next();
   } catch (err) {

@@ -1,19 +1,27 @@
+import bcrypt from 'bcrypt';
 import { Response, Request } from 'express';
 import { getUserById, updateUser } from './users.service';
-import bcrypt from 'bcrypt';
-import { AuthenticatedRequest } from '../../middlewares/auth';
+
+declare global {
+  namespace Express {
+    interface Request {
+      userId?: number;
+      role?: 'USER' | 'ADMIN';
+      log?: any;
+    }
+  }
+}
 
 export const getMyProfile = async (req: Request, res: Response) => {
-  const { userId } = req as AuthenticatedRequest;
 
-  const user = await getUserById(userId);
+  const user = await getUserById(req.userId!);
   if (!user) return res.status(404).json({ message: 'User not found' });
 
   res.json({ id: user.id, email: user.email, name: user.name, role: user.role });
 };
 
 export const updateMyProfile = async (req: Request, res: Response) => {
-  const { userId } = req as AuthenticatedRequest;
+  const userId = req.userId!
   const { name, password } = req.body;
 
   const data: any = {};
