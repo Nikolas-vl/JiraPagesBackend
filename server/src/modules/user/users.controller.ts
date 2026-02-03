@@ -2,16 +2,6 @@ import bcrypt from 'bcrypt';
 import { Response, Request } from 'express';
 import { getUserById, updateUser } from './users.service';
 
-declare global {
-  namespace Express {
-    interface Request {
-      userId?: number;
-      role?: 'USER' | 'ADMIN';
-      log?: any;
-    }
-  }
-}
-
 export const getMyProfile = async (req: Request, res: Response) => {
 
   const user = await getUserById(req.userId!);

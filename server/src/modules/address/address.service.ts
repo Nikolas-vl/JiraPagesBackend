@@ -26,3 +26,10 @@ export const deleteAddress = (id: number) => {
     where: { id },
   });
 };
+
+export const updateAddress = (id: number, data: any) => {
+  return prisma.address.update({
+    where: { id },
+    data,
+  });
+};
