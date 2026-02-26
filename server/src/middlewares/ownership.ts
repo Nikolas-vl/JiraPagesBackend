@@ -6,9 +6,7 @@ type EntityWithUserId = {
 };
 
 export const ownsResource =
-  <T extends EntityWithUserId>(
-    getResource: (req: Request) => Promise<T | null>,
-  ) =>
+  <T extends EntityWithUserId>(getResource: (req: Request) => Promise<T | null>) =>
   async (req: Request, res: Response, next: NextFunction) => {
     const resource = await getResource(req);
     if (req.role === 'ADMIN') {
@@ -23,9 +21,7 @@ export const ownsResource =
     next();
   };
 
-export const ownsAddress = ownsResource((req) =>
-  getAddressById(+req.params.id),
-);
+export const ownsAddress = ownsResource(req => getAddressById(+req.params.id));
 
 // export const ownsOrder = ownsResource((req) =>
 //   getOrderById(+req.params.id)
