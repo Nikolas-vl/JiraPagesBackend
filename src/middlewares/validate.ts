@@ -1,25 +1,32 @@
 import { z } from 'zod';
 import { Request, Response, NextFunction } from 'express';
 
-export const validate = (schema: z.ZodType) => (req: Request, res: Response, next: NextFunction) => {
-  try {
-    schema.parse(req.body);
-    next();
-  } catch (error: unknown) {
-    if (error instanceof z.ZodError) {
-      req.log.warn(
-        {
-          body: req.body,
-          issues: error.issues,
-        },
-        'Request validation failed',
-      );
+type ValidationTarget = 'body' | 'query' | 'params';
 
-      return res.status(400).json({
-        message: 'Validation failed',
-        issues: error.issues,
-      });
+export const validate =
+  <T extends z.ZodTypeAny, K extends ValidationTarget>(schema: T, target: K = 'body' as K) =>
+  (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const parsed = schema.parse(req[target]);
+      req[target] = parsed;
+      next();
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        req.log?.warn?.(
+          {
+            target,
+            [target]: req[target],
+            issues: error.issues,
+          },
+          'Request validation failed',
+        );
+
+        return res.status(400).json({
+          message: `Validation failed for ${target}`,
+          issues: error.issues,
+        });
+      }
+
+      next(error);
     }
-    throw error;
-  }
-};
+  };
