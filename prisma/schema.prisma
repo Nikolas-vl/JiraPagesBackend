@@ -31,6 +31,32 @@ model User {
   reservations   Reservation[]
   addresses      Address[]
   paymentMethods PaymentMethod[]
+  cart           Cart?
+}
+
+model Cart {
+  id        Int        @id @default(autoincrement())
+  userId    Int        @unique
+  user      User       @relation(fields: [userId], references: [id])
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([userId])
+}
+
+model CartItem {
+  id       Int @id @default(autoincrement())
+  cartId   Int
+  dishId   Int
+  quantity Int @default(1)
+
+  cart Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  dish Dish @relation(fields: [dishId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, dishId])
+  @@index([cartId])
+  @@index([dishId])
 }
 
 enum Category {
@@ -53,6 +79,7 @@ model Dish {
   isAvailable Boolean          @default(true)
   ingredients DishIngredient[]
   orderItems  OrderItem[]
+  cartItems   CartItem[]
 }
 
 model Ingredient {
