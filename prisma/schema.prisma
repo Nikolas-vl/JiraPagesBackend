@@ -32,6 +32,7 @@ model User {
   addresses      Address[]
   paymentMethods PaymentMethod[]
   cart           Cart?
+  payments       Payment[]
 }
 
 model Cart {
@@ -150,7 +151,7 @@ enum OrderStatus {
 
 enum PaymentStatus {
   PENDING
-  PAID
+  SUCCESS
   FAILED
 }
 
@@ -164,8 +165,9 @@ model Order {
   comment       String?
   createdAt     DateTime      @default(now())
 
-  user  User        @relation(fields: [userId], references: [id])
-  items OrderItem[]
+  user     User        @relation(fields: [userId], references: [id])
+  items    OrderItem[]
+  payments Payment[]
 
   @@index([userId])
   @@index([status])
@@ -185,12 +187,19 @@ model OrderItem {
   @@index([dishId])
 }
 
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELED
+}
+
 model Reservation {
-  id     Int      @id @default(autoincrement())
+  id     Int               @id @default(autoincrement())
   userId Int
   date   DateTime
   guests Int
-  user   User     @relation(fields: [userId], references: [id])
+  user   User              @relation(fields: [userId], references: [id])
+  status ReservationStatus @default(PENDING)
 
   @@index([date])
   @@index([userId])
@@ -208,6 +217,12 @@ model Address {
   @@index([userId])
 }
 
+enum PaymentType {
+  CARD
+  CASH
+  BLIK
+}
+
 model PaymentMethod {
   id        Int      @id @default(autoincrement())
   userId    Int
@@ -217,7 +232,26 @@ model PaymentMethod {
   expYear   Int
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id])
+  user     User      @relation(fields: [userId], references: [id])
+  payments Payment[]
 
+  @@index([userId])
+}
+
+model Payment {
+  id              Int           @id @default(autoincrement())
+  orderId         Int
+  userId          Int
+  amount          Decimal       @db.Decimal(10, 2)
+  status          PaymentStatus @default(PENDING)
+  paymentMethodId Int?
+  createdAt       DateTime      @default(now())
+  type            PaymentType
+
+  order         Order          @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  user          User           @relation(fields: [userId], references: [id])
+  paymentMethod PaymentMethod? @relation(fields: [paymentMethodId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
   @@index([userId])
 }

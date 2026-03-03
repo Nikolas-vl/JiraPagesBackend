@@ -1,0 +1,238 @@
+import Decimal from 'decimal.js';
+import prisma from '../../prisma';
+import { OrderStatus, PaymentStatus, PaymentType } from '../../../generated/prisma/client';
+import { NotFoundError, ValidationError } from '../../utils/errors';
+import { CreateOrderInput, UpdateOrderStatusInput, PayOrderInput, OrderQuery } from './order.schema';
+
+// ─── Includes ──────────────────────────────────────────────────────────────
+
+const orderInclude = {
+  items: {
+    include: { dish: true },
+  },
+  payments: true,
+};
+
+// ─── User ──────────────────────────────────────────────────────────────────
+
+export const createOrder = async (userId: number, input: CreateOrderInput) => {
+  return prisma.$transaction(async tx => {
+    const cart = await tx.cart.findUnique({
+      where: { userId },
+      include: {
+        items: {
+          include: {
+            dish: true,
+            extras: { include: { ingredient: true } },
+          },
+        },
+        ingredientItems: {
+          include: { ingredient: true },
+        },
+      },
+    });
+
+    if (!cart || (cart.items.length === 0 && cart.ingredientItems.length === 0)) {
+      throw new ValidationError('Cart is empty');
+    }
+
+    let total = new Decimal(0);
+
+    for (const item of cart.items) {
+      total = total.plus(new Decimal(item.dish.price.toString()).times(item.quantity));
+      for (const extra of item.extras) {
+        total = total.plus(new Decimal(extra.ingredient.price.toString()).times(extra.quantity));
+      }
+    }
+
+    for (const ingItem of cart.ingredientItems) {
+      total = total.plus(new Decimal(ingItem.ingredient.price.toString()).times(ingItem.quantity));
+    }
+
+    const order = await tx.order.create({
+      data: {
+        userId,
+        type: input.type,
+        comment: input.comment,
+        total,
+        status: OrderStatus.NEW,
+        paymentStatus: PaymentStatus.PENDING,
+        items: {
+          create: cart.items.map(item => ({
+            dishId: item.dishId,
+            quantity: item.quantity,
+          })),
+        },
+      },
+      include: orderInclude,
+    });
+
+    await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+    await tx.cartIngredientItem.deleteMany({ where: { cartId: cart.id } });
+
+    return order;
+  });
+};
+
+export const getUserOrders = async (userId: number, query: OrderQuery) => {
+  const { status, page, limit } = query;
+  const skip = (page - 1) * limit;
+
+  const [orders, total] = await prisma.$transaction([
+    prisma.order.findMany({
+      where: { userId, ...(status && { status }) },
+      include: orderInclude,
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
+    }),
+    prisma.order.count({
+      where: { userId, ...(status && { status }) },
+    }),
+  ]);
+
+  return { orders, total, page, limit };
+};
+
+export const getUserOrderById = async (userId: number, orderId: number) => {
+  const order = await prisma.order.findFirst({
+    where: { id: orderId, userId },
+    include: orderInclude,
+  });
+
+  if (!order) throw new NotFoundError('Order not found');
+
+  return order;
+};
+
+export const cancelOrder = async (userId: number, orderId: number) => {
+  const order = await prisma.order.findFirst({
+    where: { id: orderId, userId },
+  });
+
+  if (!order) throw new NotFoundError('Order not found');
+
+  if (order.status !== OrderStatus.NEW) {
+    throw new ValidationError(`Cannot cancel an order with status: ${order.status}`);
+  }
+
+  return prisma.order.update({
+    where: { id: orderId },
+    data: { status: OrderStatus.CANCELED },
+    include: orderInclude,
+  });
+};
+
+export const payOrder = async (userId: number, orderId: number, input: PayOrderInput) => {
+  const order = await prisma.order.findFirst({
+    where: { id: orderId, userId },
+  });
+
+  if (!order) throw new NotFoundError('Order not found');
+
+  if (order.paymentStatus === PaymentStatus.SUCCESS) {
+    throw new ValidationError('Order is already paid');
+  }
+
+  if (order.status === OrderStatus.CANCELED) {
+    throw new ValidationError('Cannot pay for a cancelled order');
+  }
+
+  if (input.type === PaymentType.CARD && input.paymentMethodId) {
+    const method = await prisma.paymentMethod.findFirst({
+      where: { id: input.paymentMethodId, userId },
+    });
+    if (!method) throw new NotFoundError('Payment method not found');
+  }
+
+  // Simulate: BLIK has a small random failure rate
+  const simulatedStatus = input.type === PaymentType.BLIK && Math.random() < 0.1 ? PaymentStatus.FAILED : PaymentStatus.SUCCESS;
+
+  return prisma.$transaction(async tx => {
+    const payment = await tx.payment.create({
+      data: {
+        orderId,
+        userId,
+        amount: order.total,
+        type: input.type,
+        paymentMethodId: input.paymentMethodId ?? null,
+        status: simulatedStatus,
+      },
+    });
+
+    if (simulatedStatus === PaymentStatus.SUCCESS) {
+      await tx.order.update({
+        where: { id: orderId },
+        data: {
+          paymentStatus: PaymentStatus.SUCCESS,
+          status: OrderStatus.PAID,
+        },
+      });
+    }
+
+    return {
+      payment,
+      success: simulatedStatus === PaymentStatus.SUCCESS,
+      message: simulatedStatus === PaymentStatus.SUCCESS ? 'Payment successful' : 'Payment failed. Please try again.',
+    };
+  });
+};
+
+// ─── Admin ─────────────────────────────────────────────────────────────────
+
+export const getAllOrders = async (query: OrderQuery) => {
+  const { status, page, limit } = query;
+  const skip = (page - 1) * limit;
+
+  const [orders, total] = await prisma.$transaction([
+    prisma.order.findMany({
+      where: { ...(status && { status }) },
+      include: {
+        ...orderInclude,
+        user: { select: { id: true, name: true, email: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
+    }),
+    prisma.order.count({
+      where: { ...(status && { status }) },
+    }),
+  ]);
+
+  return { orders, total, page, limit };
+};
+
+export const getOrderById = async (orderId: number) => {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: {
+      ...orderInclude,
+      user: { select: { id: true, name: true, email: true } },
+    },
+  });
+
+  if (!order) throw new NotFoundError('Order not found');
+
+  return order;
+};
+
+export const updateOrderStatus = async (orderId: number, input: UpdateOrderStatusInput) => {
+  const order = await prisma.order.findUnique({ where: { id: orderId } });
+
+  if (!order) throw new NotFoundError('Order not found');
+
+  return prisma.order.update({
+    where: { id: orderId },
+    data: { status: input.status },
+    include: orderInclude,
+  });
+};
+
+export const deleteOrder = async (orderId: number) => {
+  const order = await prisma.order.findUnique({ where: { id: orderId } });
+
+  if (!order) throw new NotFoundError('Order not found');
+
+  return prisma.order.delete({ where: { id: orderId } });
+};
