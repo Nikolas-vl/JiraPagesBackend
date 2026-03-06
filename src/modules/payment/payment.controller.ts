@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import * as service from './payment.service';
+import { paramSchema } from '../../utils/common.schema';
 
 export const create = async (req: Request, res: Response) => {
   const userId = req.userId!;
@@ -15,25 +16,22 @@ export const getAll = async (req: Request, res: Response) => {
 
 export const getOne = async (req: Request, res: Response) => {
   const userId = req.userId!;
-  const id = Number(req.params.id);
+  const { id } = paramSchema('id').parse(req.params);
 
   const payment = await service.getPaymentMethodById(id, userId);
-
-  if (!payment) return res.status(404).json({ message: 'Not found' });
-
   res.json(payment);
 };
 
 export const update = async (req: Request, res: Response) => {
   const userId = req.userId!;
-  const id = Number(req.params.id);
+  const { id } = paramSchema('id').parse(req.params);
   await service.updatePaymentMethod(id, userId, req.body);
   res.json({ message: 'Updated' });
 };
 
 export const remove = async (req: Request, res: Response) => {
   const userId = req.userId!;
-  const id = Number(req.params.id);
+  const { id } = paramSchema('id').parse(req.params);
 
   await service.deletePaymentMethod(id, userId);
   res.status(204).send();

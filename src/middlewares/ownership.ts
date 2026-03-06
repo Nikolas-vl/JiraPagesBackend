@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { getAddressById } from '../modules/address/address.service';
+import { ForbiddenError } from '../utils/errors';
+import { paramSchema } from '../utils/common.schema';
 
 type EntityWithUserId = {
   id: number;
@@ -14,7 +16,7 @@ export const ownsResource =
       return next();
     }
     if (!resource || resource.userId !== req.userId) {
-      return res.status(403).json({ message: 'Forbidden' });
+      throw new ForbiddenError();
     }
 
     req.resource = resource;
@@ -22,12 +24,7 @@ export const ownsResource =
     next();
   };
 
-export const ownsAddress = ownsResource(req => getAddressById(+req.params.id));
-
-// export const ownsOrder = ownsResource((req) =>
-//   getOrderById(+req.params.id)
-// );
-
-// export const ownsPayment = ownsResource((req) =>
-//   getPaymentById(+req.params.id)
-// );
+export const ownsAddress = ownsResource(req => {
+  const { id } = paramSchema('id').parse(req.params);
+  return getAddressById(id);
+});
