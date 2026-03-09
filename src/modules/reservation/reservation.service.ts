@@ -7,7 +7,7 @@ import { CreateReservationInput, AdminCreateReservationInput, AdminUpdateReserva
 const SLOT_DURATION_MS = 2 * 60 * 60 * 1000; // 2 hours
 
 const reservationInclude = {
-  table: true,
+  table: { include: { location: true } },
   preOrders: { include: { dish: true } },
   user: { select: { id: true, name: true, email: true } },
 };
@@ -196,6 +196,8 @@ export const adminUpdateReservation = async (id: number, input: AdminUpdateReser
       date: updated.date,
       guests: updated.guests,
       tableNumber: updated.table.number,
+      locationName: updated.table.location.name,
+      locationAddress: updated.table.location.address,
       preOrders: updated.preOrders.map(p => ({
         dishName: p.dish.name,
         quantity: p.quantity,

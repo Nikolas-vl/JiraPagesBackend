@@ -4,7 +4,8 @@ import { CreateTableInput, UpdateTableInput } from './table.schema';
 import { paramSchema } from '../../utils/common.schema';
 
 export const getAllTables = async (req: Request, res: Response) => {
-  const tables = await service.getAllTables();
+  const locationId = req.query.locationId ? Number(req.query.locationId) : undefined;
+  const tables = await service.getAllTables(locationId);
   res.json(tables);
 };
 
