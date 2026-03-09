@@ -1,10 +1,12 @@
 import { z } from 'zod';
 
 // Create ingredient schema
-export const createIngredientSchema = z.object({
-  name: z.string().min(1).max(100),
-  price: z.number().positive().default(0),
-});
+export const createIngredientSchema = z
+  .object({
+    name: z.string().min(1).max(100),
+    price: z.number().positive().default(0),
+  })
+  .strict();
 
 // Update ingredient schema (partial of create)
 export const updateIngredientSchema = createIngredientSchema.partial();

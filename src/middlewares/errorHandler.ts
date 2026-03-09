@@ -2,6 +2,7 @@ import { ErrorRequestHandler } from 'express';
 import { AppError } from '../utils/errors';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   if (err instanceof AppError) {
     return res.status(err.statusCode).json({ message: err.message });

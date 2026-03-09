@@ -1,9 +1,11 @@
 import { z } from 'zod';
 
-export const createTableSchema = z.object({
-  number: z.number().int().positive(),
-  capacity: z.number().int().min(1),
-});
+export const createTableSchema = z
+  .object({
+    number: z.number().int().positive(),
+    capacity: z.number().int().min(1),
+  })
+  .strict();
 
 export const updateTableSchema = createTableSchema.partial();
 
