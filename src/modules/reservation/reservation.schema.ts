@@ -1,39 +1,47 @@
 import { z } from 'zod';
 import { ReservationStatus } from '../../../generated/prisma/client';
 
-const preOrderItemSchema = z.object({
-  dishId: z.number().int().positive(),
-  quantity: z.number().int().min(1).default(1),
-});
+const preOrderItemSchema = z
+  .object({
+    dishId: z.number().int().positive(),
+    quantity: z.number().int().min(1).default(1),
+  })
+  .strict();
 
-export const createReservationSchema = z.object({
-  date: z.coerce.date().refine(d => d > new Date(), {
-    message: 'Reservation date must be in the future',
-  }),
-  guests: z.number().int().min(1),
-  comment: z.string().max(500).optional(),
-  preOrders: z.array(preOrderItemSchema).optional().default([]),
-});
-
-export const adminCreateReservationSchema = createReservationSchema.extend({
-  userId: z.number().int().positive(),
-  tableId: z.number().int().positive().optional(),
-  status: z.enum(ReservationStatus).optional(),
-});
-
-export const adminUpdateReservationSchema = z.object({
-  date: z.coerce
-    .date()
-    .refine(d => d > new Date(), {
+export const createReservationSchema = z
+  .object({
+    date: z.coerce.date().refine(d => d > new Date(), {
       message: 'Reservation date must be in the future',
-    })
-    .optional(),
-  guests: z.number().int().min(1).optional(),
-  tableId: z.number().int().positive().nullable().optional(),
-  status: z.enum(ReservationStatus).optional(),
-  comment: z.string().max(500).optional(),
-  preOrders: z.array(preOrderItemSchema).optional(),
-});
+    }),
+    guests: z.number().int().min(1),
+    comment: z.string().max(500).optional(),
+    preOrders: z.array(preOrderItemSchema).optional().default([]),
+  })
+  .strict();
+
+export const adminCreateReservationSchema = createReservationSchema
+  .extend({
+    userId: z.number().int().positive(),
+    tableId: z.number().int().positive().optional(),
+    status: z.enum(ReservationStatus).optional(),
+  })
+  .strict();
+
+export const adminUpdateReservationSchema = z
+  .object({
+    date: z.coerce
+      .date()
+      .refine(d => d > new Date(), {
+        message: 'Reservation date must be in the future',
+      })
+      .optional(),
+    guests: z.number().int().min(1).optional(),
+    tableId: z.number().int().positive().nullable().optional(),
+    status: z.enum(ReservationStatus).optional(),
+    comment: z.string().max(500).optional(),
+    preOrders: z.array(preOrderItemSchema).optional(),
+  })
+  .strict();
 
 export const reservationQuerySchema = z.object({
   date: z.coerce.date().optional(),
