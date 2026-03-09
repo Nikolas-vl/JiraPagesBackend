@@ -433,22 +433,30 @@ const order1 = await prisma.order.create({
   const nextWeek = new Date(today);
   nextWeek.setDate(nextWeek.getDate() + 7);
 
+  const now = new Date();
+
   await prisma.reservation.createMany({
     data: [
       {
         userId: user1.id,
         date: tomorrow,
         guests: 4,
+        createdAt: now,
+        updatedAt: now,
       },
       {
         userId: user2.id,
         date: nextWeek,
         guests: 2,
+        createdAt: now,
+        updatedAt: now,
       },
       {
         userId: user3.id,
         date: new Date(today.setHours(19, 0, 0, 0)),
         guests: 6,
+        createdAt: now,
+        updatedAt: now,
       },
     ],
   });
