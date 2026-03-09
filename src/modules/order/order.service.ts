@@ -50,7 +50,7 @@ export const createOrder = async (userId: number, input: CreateOrderInput) => {
       subtotal = subtotal.plus(new Decimal(ingItem.ingredient.price.toString()).times(ingItem.quantity));
     }
 
-    const pricing = calcFinalTotal(subtotal, input.discountPercent);
+    const pricing = await calcFinalTotal(subtotal, input.discountPercent);
 
     const order = await tx.order.create({
       data: {

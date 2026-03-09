@@ -10,6 +10,8 @@ import orderRoutes from './modules/order/order.routes';
 import reservationRoutes from './modules/reservation/reservation.routes';
 import tableRoutes from './modules/table/table.routes';
 import { requireAuth } from './middlewares/auth';
+import locationRoutes from './modules/location/location.routes';
+import settingsRoutes from './modules/settings/settings.routes';
 
 const router = Router();
 
@@ -23,5 +25,6 @@ router.use('/cart', requireAuth, cartRoutes);
 router.use('/orders', requireAuth, orderRoutes);
 router.use('/reservations', requireAuth, reservationRoutes);
 router.use('/tables', tableRoutes);
-
+router.use('/settings', settingsRoutes);
+router.use('/locations', locationRoutes);
 export default router;

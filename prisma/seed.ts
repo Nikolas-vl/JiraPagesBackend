@@ -15,6 +15,11 @@ async function main() {
   await prisma.dish.deleteMany();
   await prisma.ingredient.deleteMany();
   await prisma.user.deleteMany();
+  await prisma.table.deleteMany();
+  await prisma.settings.deleteMany();
+  await prisma.location.deleteMany();
+
+
 
   console.log('🗑️  Cleared existing data');
 
@@ -460,6 +465,51 @@ const order1 = await prisma.order.create({
       },
     ],
   });
+
+  await prisma.settings.create({
+  data: {
+    id: 1,
+    restaurantName: 'The Bar',
+    taxRate: 0.23,
+    deliveryFee: 5.00,
+    serviceFee: 2.00,
+    freeDeliveryThreshold: 50.00,
+  },
+});
+
+// Create locations
+const location1 = await prisma.location.create({
+  data: {
+    name: 'Main Street',
+    address: '123 Main St, New York',
+    phone: '555-0100',
+    email: 'main@thebar.com',
+    openingHours: '08:00 - 22:00',
+  },
+});
+
+const location2 = await prisma.location.create({
+  data: {
+    name: 'Park Avenue',
+    address: '456 Park Ave, New York',
+    phone: '555-0200',
+    email: 'park@thebar.com',
+    openingHours: '09:00 - 23:00',
+  },
+});
+
+// Create tables per location
+await prisma.table.createMany({
+  data: [
+    { number: 1, capacity: 2, locationId: location1.id },
+    { number: 2, capacity: 4, locationId: location1.id },
+    { number: 3, capacity: 6, locationId: location1.id },
+    { number: 4, capacity: 8, locationId: location1.id },
+    { number: 1, capacity: 2, locationId: location2.id },
+    { number: 2, capacity: 4, locationId: location2.id },
+    { number: 3, capacity: 6, locationId: location2.id },
+  ],
+});
 
   console.log('✅ Created reservations');
 

@@ -4,6 +4,7 @@ export const createTableSchema = z
   .object({
     number: z.number().int().positive(),
     capacity: z.number().int().min(1),
+    locationId: z.number().int().positive(),
   })
   .strict();
 
