@@ -23,6 +23,7 @@ export const findUserByEmail = (email: string) => {
       id: true,
       email: true,
       password: true,
+      name: true,
       role: true,
       refreshToken: true,
     },
@@ -44,7 +45,22 @@ export const registerUser = async (input: RegisterInput) => {
 
   const user = await createUser(input.email, input.password, input.name);
 
-  return { id: user.id, email: user.email };
+  const accessToken = generateAccessToken(user.id, user.role);
+  const refreshToken = generateRefreshToken(user.id);
+  const hashedToken = await bcrypt.hash(refreshToken, 10);
+
+  await updateRefreshToken(user.id, hashedToken);
+
+  return {
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+    },
+    accessToken,
+    refreshToken,
+  };
 };
 
 export const loginUser = async (input: LoginInput) => {
@@ -64,7 +80,16 @@ export const loginUser = async (input: LoginInput) => {
 
   await updateRefreshToken(user.id, hashedToken);
 
-  return { accessToken, refreshToken };
+  return {
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+    },
+    accessToken,
+    refreshToken,
+  };
 };
 
 export const refreshSession = async (oldRefreshToken: string) => {

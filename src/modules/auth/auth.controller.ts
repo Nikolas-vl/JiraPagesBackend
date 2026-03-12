@@ -16,19 +16,20 @@ const REFRESH_COOKIE_OPTIONS = {
 export const register = async (req: Request, res: Response) => {
   req.log.info({ email: req.body.email }, 'Register attempt');
 
-  const user = await registerUser(req.body);
+  const { user, accessToken, refreshToken } = await registerUser(req.body);
 
   req.log.info({ userId: user.id }, 'User registered');
-  res.status(201).json(user);
+  res.cookie('refreshToken', refreshToken, REFRESH_COOKIE_OPTIONS);
+  res.status(201).json({ user, accessToken });
 };
 
 export const login = async (req: Request, res: Response) => {
   req.log.info({ email: req.body.email }, 'Login attempt');
 
-  const { accessToken, refreshToken } = await loginUser(req.body);
+  const { user, accessToken, refreshToken } = await loginUser(req.body);
 
   res.cookie('refreshToken', refreshToken, REFRESH_COOKIE_OPTIONS);
-  res.json({ accessToken });
+  res.json({ user, accessToken });
 };
 
 export const refresh = async (req: Request, res: Response) => {
